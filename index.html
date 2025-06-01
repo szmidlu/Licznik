@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Kalkulator Siodłania</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 500px;
+      margin: 40px auto;
+      padding: 20px;
+      background-color: #f2f2f2;
+      border-radius: 12px;
+      box-shadow: 0 0 12px rgba(0, 0, 0, 0.1);
+    }
+    h1 {
+      text-align: center;
+    }
+    label {
+      display: block;
+      margin-top: 15px;
+      font-weight: bold;
+    }
+    input {
+      width: 100%;
+      padding: 10px;
+      margin-top: 5px;
+      font-size: 16px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+    }
+    button {
+      margin-top: 20px;
+      width: 100%;
+      padding: 12px;
+      background-color: #4CAF50;
+      color: white;
+      font-size: 16px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #45a049;
+    }
+    #result, #timer {
+      margin-top: 25px;
+      font-size: 20px;
+      text-align: center;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <h1>Kalkulator Siodłania</h1>
+
+  <label for="startTime">Godzina rozpoczęcia konkursu (HH:MM):</label>
+  <input type="time" id="startTime" required />
+
+  <label for="numRiders">Zawodnicy przed Tobą:</label>
+  <input type="number" id="numRiders" min="0" required />
+
+  <button onclick="calculateTime()">Oblicz godzinę siodłania</button>
+
+  <div id="result">Siodłanie o: --:--</div>
+  <div id="timer"></div>
+
+  <script>
+    let siodlanieTime = null;
+    let countdownInterval = null;
+
+    // Prośba o pozwolenie na powiadomienia
+    if ("Notification" in window && Notification.permission !== "granted") {
+      Notification.requestPermission();
+    }
+
+    function calculateTime() {
+      const startTimeInput = document.getElementById('startTime').value;
+      const numRiders = parseInt(document.getElementById('numRiders').value, 10);
+
+      if (!startTimeInput || isNaN(numRiders)) {
+        document.getElementById('result').textContent = "Wpisz poprawne dane.";
+        return;
+      }
+
+      const [hours, minutes] = startTimeInput.split(':').map(Number);
+      const now = new Date();
+      const startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hours, minutes);
+
+      const minutesToSubtract = numRiders * 2 + 15 + 10 + 15; // 2 min/zawodnik + przygotowania
+      siodlanieTime = new Date(startDate.getTime() - minutesToSubtract * 60000);
+
+      const resultHours = String(siodlanieTime.getHours()).padStart(2, '0');
+      const resultMinutes = String(siodlanieTime.getMinutes()).padStart(2, '0');
+
+      document.getElementById('result').textContent = `Siodłanie o: ${resultHours}:${resultMinutes}`;
+
+      startCountdown();
+    }
+
+    function startCountdown() {
+      clearInterval(countdownInterval);
+
+      countdownInterval = setInterval(() => {
+        const now = new Date();
+        const diff = siodlanieTime - now;
+
+        if (diff <= 0) {
+          clearInterval(countdownInterval);
+          document.getElementById('timer').textContent = "Czas na siodłanie!";
+          notify("Czas na siodłanie!");
+        } else {
+          const minutes = Math.floor(diff / 60000);
+          const seconds = Math.floor((diff % 60000) / 1000);
+          document.getElementById('timer').textContent = `Pozostało: ${minutes}m ${seconds}s`;
+
+          // Powiadomienie 10 minut przed siodłaniem
+          if (minutes === 10 && seconds === 0) {
+            notify("Zostało 10 minut do siodłania!");
+          }
+        }
+      }, 1000);
+    }
+
+    function notify(message) {
+      if ("Notification" in window && Notification.permission === "granted") {
+        new Notification(message);
+      }
+    }
+  </script>
+</body>
+</html>
